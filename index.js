@@ -20,6 +20,7 @@ client.on('ready', () => {
 });
 
 client.on("message", (msg) => {
+    if (msg.author.id != '174300826662076416') return;
     if (msg.author.bot || msg.member == null) return;
     if (!msg.content.startsWith(command_prefix)) return;
 
@@ -45,6 +46,9 @@ client.on("message", (msg) => {
             break;
         case "resume":
             resumeAudio(msg, args);
+            break;
+        case "volume":
+            changeVolume(msg, args);
             break;
         case "leave":
             leaveCall(msg, args);
@@ -97,9 +101,14 @@ client.on("message", (msg) => {
     async function joinCall(msg, args) {
         if (!msg.guild) return;
         if (msg.member.voice.channel && connection == null) {
-            connection = await msg.member.voice.channel.join();
-            connection.voice.setSelfDeaf(true);
-            dispatcher = connection.play(ytdl("https://www.youtube.com/watch?v=rUWxSEwctFU"), { quality: "highestaudio" });
+            msg.member.voice.channel.join()
+                .then(conn => {
+                    connection = conn;
+                    conn.voice.setSelfDeaf(true);
+                    play(conn, msg, args);
+                })
+            // connection = await msg.member.voice.channel.join();
+            // dispatcher = connection.play(ytdl("https://www.youtube.com/watch?v=tuq_0Vwm5ws"));
             // const dispatcher = connection.play('./music.mp3');
         } else if (connection != null) {
             msg.reply("Already in a voice channel.");
@@ -108,10 +117,15 @@ client.on("message", (msg) => {
         }
     }
 
-    function play() {
-        console.log('test');
-        if (dispatcher == null) return;
-        dispatcher.play("https://www.youtube.com/watch?v=rUWxSEwctFU");
+    function play(connection, msg, args) {
+        if (connection == null) return;
+        dispatcher = connection.play(ytdl(songs.split()))
+            .on("finish", () => {
+                console.log("finished");
+            })
+            .on("error", error => {
+                console.error(error);
+            });
     }
 
     // Add a song to current songs
@@ -123,8 +137,10 @@ client.on("message", (msg) => {
 
     // Set volume for music 
     function changeVolume(msg, args) {
-        if (dispatcher == null) return;
-
+        if (dispatcher == null || args.length < 1) return;
+        const volume = parseInt(args[0], 10);
+        const value = (volume % 101) / 50;
+        dispatcher.setVolume(value);
     }
 
     // Pause currently playing audio
