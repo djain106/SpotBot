@@ -5,7 +5,12 @@ const Discord = require("discord.js");
 const client = new Discord.Client();
 const ytdl = require('ytdl-core');
 const command_prefix = "!";
+const queue = new Map();
+
+// Music variables
 var connection = null;
+const songs = [];
+var dispatcher = null;
 
 client.on('ready', () => {
     console.log(`Logged in as ${client.user.tag}`);
@@ -34,6 +39,10 @@ client.on("message", (msg) => {
         case "pause":
             pauseAudio(msg, args);
             break;
+        case "play":
+            // songs.push(args.join(' '));
+            // if (connection == null) joinCall(msg, args);
+            break;
         case "resume":
             resumeAudio(msg, args);
             break;
@@ -48,6 +57,7 @@ client.on("message", (msg) => {
             helpMessage(msg, args);
             break;
         default:
+            msg.reply("Invalid Command!");
             break;
     }
 
@@ -64,7 +74,10 @@ client.on("message", (msg) => {
                 { name: "!ping", value: "Returns 'pong!'" },
                 { name: "!avatar", value: "Displays user's avatar" },
                 { name: "!join", value: "Make bot join the user's voice call" },
-                { name: "!leave", value: "Make bot leave the voice call" }
+                { name: "!leave", value: "Make bot leave the voice call" },
+                { name: "!monkey or !ape", value: "Send a high quality meme pic" },
+                { name: "!play [url]", value: "Play audio from a given link" },
+                { name: "!pause", value: "Pause audio if currently playing" }
             )
             .setTimestamp();
         msg.member.send(embed).catch(console.error);
@@ -83,18 +96,56 @@ client.on("message", (msg) => {
     // Join voice call to !join
     async function joinCall(msg, args) {
         if (!msg.guild) return;
-        if (msg.member.voice.channel) {
+        if (msg.member.voice.channel && connection == null) {
             connection = await msg.member.voice.channel.join();
             connection.voice.setSelfDeaf(true);
+            dispatcher = connection.play(ytdl("https://www.youtube.com/watch?v=rUWxSEwctFU"), { quality: "highestaudio" });
             // const dispatcher = connection.play('./music.mp3');
+        } else if (connection != null) {
+            msg.reply("Already in a voice channel.");
         } else {
             msg.reply("You must join a voice channel first!");
         }
     }
 
+    function play() {
+        console.log('test');
+        if (dispatcher == null) return;
+        dispatcher.play("https://www.youtube.com/watch?v=rUWxSEwctFU");
+    }
+
+    // Add a song to current songs
+    function addSong(msg, args) {
+        console.log(dispatcher);
+        if (dispatcher == null) return;
+        console.log(args);
+    }
+
+    // Set volume for music 
+    function changeVolume(msg, args) {
+        if (dispatcher == null) return;
+
+    }
+
+    // Pause currently playing audio
+    function pauseAudio(msg, args) {
+        if (dispatcher != null) {
+            dispatcher.pause();
+        }
+    }
+
+    // Resume audio
+    function resumeAudio(msg, args) {
+        if (dispatcher != null) {
+            dispatcher.resume();
+        }
+    }
+
     // Leave voice call to !leave
     function leaveCall(msg, args) {
-        if (!msg.guild.me.voice.channel) return msg.channel.send("I'm not in a voice channel");
+        if (!msg.guild.me.voice.channel) return msg.channel.send("I'm not in a voice channel!");
+        dispatcher = null;
+        connection = null;
         msg.guild.me.voice.channel.leave();
     }
 
